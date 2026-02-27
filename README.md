@@ -20,7 +20,7 @@ Smooth keyboard controls
 
 Collision detection system
 
-🕹 Controls
+Controls
 
 Left Arrow → Move Left
 
