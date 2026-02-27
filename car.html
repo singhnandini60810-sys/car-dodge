@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Car Racing Pro</title>
+
+<style>
+body{
+    margin:0;
+    background:#111;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    font-family:Arial;
+    color:white;
+}
+
+#gameContainer{
+    text-align:center;
+}
+
+#gameArea{
+    width:400px;
+    height:600px;
+    background:#333;
+    overflow:hidden;
+    position:relative;
+    border:4px solid white;
+    margin:auto;
+}
+
+.car{
+    width:50px;
+    height:90px;
+    background:red;
+    position:absolute;
+    bottom:20px;
+    left:175px;
+    border-radius:10px;
+}
+
+.enemy{
+    width:50px;
+    height:90px;
+    background:yellow;
+    position:absolute;
+    top:-100px;
+    border-radius:10px;
+}
+
+#panel{
+    margin-bottom:10px;
+    font-size:18px;
+}
+
+button{
+    padding:8px 15px;
+    margin:5px;
+    font-size:15px;
+    cursor:pointer;
+}
+
+#gameOver{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    font-size:28px;
+    display:none;
+    text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="gameContainer">
+
+<div id="panel">
+    Score: <span id="score">0</span> |
+    High Score: <span id="highScore">0</span> |
+    Time: <span id="timer">0</span>s
+</div>
+
+<button onclick="startGame()">Start</button>
+<button onclick="pauseGame()">Pause</button>
+<button onclick="restartGame()">Restart</button>
+
+<div id="gameArea">
+    <div id="gameOver">Game Over</div>
+</div>
+
+</div>
+
+<script>
+const gameArea = document.getElementById("gameArea");
+const scoreText = document.getElementById("score");
+const highScoreText = document.getElementById("highScore");
+const timerText = document.getElementById("timer");
+const gameOverText = document.getElementById("gameOver");
+
+let player;
+let score = 0;
+let highScore = localStorage.getItem("highScore") || 0;
+let speed = 3;
+let keys = {};
+let gameRunning = false;
+let paused = false;
+let startTime = 0;
+
+highScoreText.innerText = highScore;
+
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+function startGame(){
+    if(gameRunning) return;
+
+    gameArea.innerHTML = '<div id="gameOver">Game Over</div>';
+    gameOverText.style.display = "none";
+
+    player = document.createElement("div");
+    player.classList.add("car");
+    gameArea.appendChild(player);
+
+    score = 0;
+    speed = 3;
+    startTime = Date.now();
+    gameRunning = true;
+    paused = false;
+
+    gameLoop();
+    enemySpawner();
+}
+
+function pauseGame(){
+    paused = !paused;
+}
+
+function restartGame(){
+    location.reload();
+}
+
+function enemySpawner(){
+    if(!gameRunning) return;
+
+    if(!paused){
+        let enemy = document.createElement("div");
+        enemy.classList.add("enemy");
+        enemy.style.left = Math.floor(Math.random()*7)*50 + "px";
+        gameArea.appendChild(enemy);
+    }
+
+    setTimeout(enemySpawner, 1200);
+}
+
+function moveEnemies(){
+    let enemies = document.querySelectorAll(".enemy");
+
+    enemies.forEach(enemy=>{
+        let top = enemy.offsetTop;
+        enemy.style.top = top + speed + "px";
+
+        if(top > 600){
+            enemy.remove();
+            score++;
+        }
+
+        if(isCollide(player, enemy)){
+            endGame();
+        }
+    });
+}
+
+function movePlayer(){
+    let left = player.offsetLeft;
+
+    if(keys["ArrowLeft"] && left > 0){
+        player.style.left = left - 6 + "px";
+    }
+
+    if(keys["ArrowRight"] && left < 350){
+        player.style.left = left + 6 + "px";
+    }
+}
+
+function isCollide(a,b){
+    let aRect = a.getBoundingClientRect();
+    let bRect = b.getBoundingClientRect();
+    return !(
+        aRect.bottom < bRect.top ||
+        aRect.top > bRect.bottom ||
+        aRect.right < bRect.left ||
+        aRect.left > bRect.right
+    );
+}
+
+function updateDifficulty(){
+    let elapsed = (Date.now() - startTime)/1000;
+    speed = 3 + Math.floor(elapsed/5)*0.7;
+    timerText.innerText = Math.floor(elapsed);
+}
+
+function gameLoop(){
+    if(!gameRunning) return;
+
+    if(!paused){
+        updateDifficulty();
+        movePlayer();
+        moveEnemies();
+        scoreText.innerText = score;
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+function endGame(){
+    gameRunning = false;
+    gameOverText.style.display = "block";
+
+    if(score > highScore){
+        localStorage.setItem("highScore", score);
+        highScoreText.innerText = score;
+    }
+}
+</script>
+
+</body>
+</html>
